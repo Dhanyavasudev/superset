@@ -29,7 +29,7 @@ class MultiAuthView(AuthDBView):
 
         if g.user is not None and g.user.is_authenticated:
             return redirect(
-                self.appbuilder.get_url_for_index
+                self.appbuilder.get_url_for_index()
             )
 
         form = LoginForm_db()
@@ -68,7 +68,7 @@ class MultiAuthView(AuthDBView):
                 )
 
                 return redirect(
-                    self.appbuilder.get_url_for_login
+                    self.appbuilder.get_url_for_login()
                 )
 
             login_user(
