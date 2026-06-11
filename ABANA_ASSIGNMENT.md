@@ -31,6 +31,7 @@ AUTH_TYPES = [
 The solution was designed to extend the existing authentication flow while keeping the default Superset behavior compatible.
 
 
+
 ## Solution Architecture
 
 ```text
@@ -58,7 +59,6 @@ OAuth Providers
 remain available through
 Superset OAuth configuration
 ```
-
 
 
 
@@ -125,8 +125,14 @@ Why:
 * Additional authentication checks may slightly increase login time.
 * Existing Superset authentication configurations remain compatible.
 * OAuth integration can be extended further with a dedicated provider selection UI.
+* LDAP authentication requires an external LDAP server for end-to-end validation.
+* OAuth authentication requires provider credentials (Google, Azure, etc.) for full testing.
+* The implementation supports these authentication methods through configuration, but external provider setup was not available in the local development environment.
+
 
 
 ## Summary
 
-This solution extends Apache Superset authentication by introducing support for multiple authentication providers while maintaining compatibility with the existing authentication framework. The implementation uses a custom security manager, a custom login view, and a new `AUTH_TYPES` configuration to support multiple authentication methods within the same deployment.
+This solution extends Apache Superset authentication by introducing support for multiple authentication providers while maintaining compatibility with the existing authentication framework.
+
+The implementation uses a custom security manager, a custom login view, and a new `AUTH_TYPES` configuration to support multiple authentication methods within the same deployment.
