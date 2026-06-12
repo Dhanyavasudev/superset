@@ -2,21 +2,21 @@
 
 ## Objective
 
-The objective of this assignment was to enable Apache Superset to support multiple authentication methods simultaneously:
+The objective of this assignment was to extend Apache Superset v5.0.0 to support multiple authentication methods simultaneously:
 
 * AUTH_DB
 * AUTH_LDAP
 * AUTH_OAUTH
 
-By default, Superset supports only one authentication provider through the `AUTH_TYPE` configuration.
+By default, Apache Superset supports only a single authentication backend through the `AUTH_TYPE` configuration. The goal of this implementation was to allow multiple authentication providers to coexist within the same deployment while preserving compatibility with the existing Superset authentication framework.
 
-
+---
 
 ## Approach and Plan
 
-To support multiple authentication providers, I introduced a custom security manager and a custom login view.
+To support multiple authentication methods, a custom security manager and a custom login view were introduced.
 
-Instead of using a single `AUTH_TYPE`, I added a new configuration called `AUTH_TYPES` that allows multiple authentication methods to be configured together.
+Instead of relying on a single `AUTH_TYPE`, a new configuration named `AUTH_TYPES` was implemented to allow multiple authentication backends to be configured simultaneously.
 
 Example:
 
@@ -28,9 +28,9 @@ AUTH_TYPES = [
 ]
 ```
 
-The solution was designed to extend the existing authentication flow while keeping the default Superset behavior compatible.
+The solution was designed to minimize changes to the existing Superset authentication architecture while extending its functionality.
 
-
+---
 
 ## Solution Architecture
 
@@ -40,27 +40,27 @@ User Login
     v
 MultiAuthView
     |
-    +------------------+
-    |                  |
-    v                  v
-AUTH_DB          AUTH_LDAP
-(Database)         (LDAP)
+    +--------------------+
+    |                    |
+    v                    v
+ AUTH_DB            AUTH_LDAP
+(Database)            (LDAP)
     |
-    +------------------+
-               |
-               v
-        Authenticated User
-               |
-               v
-           Superset
+    +--------------------+
+             |
+             v
+      Authenticated User
+             |
+             v
+          Superset
 
 OAuth Providers
-(Google / Azure / Others)
+(Google / Azure / GitHub / Others)
 remain available through
 Superset OAuth configuration
 ```
 
-
+---
 
 ## Changes Made and Why
 
@@ -72,25 +72,30 @@ Created:
 superset/custom_security_manager.py
 ```
 
-Why:
+Purpose:
 
-* To support multiple authentication providers.
-* To introduce the new `AUTH_TYPES` configuration.
-* To keep custom logic separate from the default Superset implementation.
+* Introduced support for multiple authentication providers.
+* Added support for the new `AUTH_TYPES` configuration.
+* Kept authentication customization separate from the core Superset codebase.
+
+---
 
 ### 2. Custom Login View
 
-Added a custom login view.
+Implemented a custom login view that extends Superset's existing authentication flow.
 
-Why:
+Purpose:
 
-* To support authentication against multiple providers.
-* To attempt database authentication first.
-* To fall back to LDAP authentication when database authentication fails.
+* Authenticate users against multiple providers.
+* Attempt database authentication first.
+* Fall back to LDAP authentication when database authentication fails.
+* Maintain compatibility with existing login functionality.
+
+---
 
 ### 3. Configuration Changes
 
-Updated `superset_config.py` with:
+Updated `superset_config.py`:
 
 ```python
 CUSTOM_SECURITY_MANAGER = MultiAuthSecurityManager
@@ -102,37 +107,96 @@ AUTH_TYPES = [
 ]
 ```
 
-Why:
+Purpose:
 
-* To register the custom security manager.
-* To allow multiple authentication methods in a single deployment.
+* Register the custom security manager.
+* Enable multiple authentication providers within a single deployment.
 
+---
 
+### 4. OAuth Support
+
+OAuth authentication support was preserved by registering Superset's existing OAuth authentication view within the custom security manager.
+
+```python
+authoauthview = AuthOAuthView
+```
+
+Purpose:
+
+* Retain compatibility with Superset's native OAuth authentication mechanism.
+* Allow integration with OAuth providers such as Google, Azure AD, GitHub, and other supported providers.
+* Avoid modifying the existing OAuth authentication flow.
+
+OAuth providers can be configured using Superset's standard `OAUTH_PROVIDERS` configuration.
+
+---
 
 ## Authentication Flow
 
 1. User enters username and password.
-2. Database authentication is attempted.
+2. Database authentication is attempted first.
 3. If database authentication fails, LDAP authentication is attempted.
 4. If authentication succeeds, the user is logged in.
-5. OAuth authentication remains available through Superset OAuth configuration.
+5. OAuth authentication remains available through Superset's existing OAuth configuration and authentication views.
 
+---
 
+## Modified Files
+
+```text
+superset/custom_security_manager.py
+superset_config.py
+ABANA_ASSIGNMENT.md
+```
+
+---
 
 ## Trade-offs and Considerations
 
-* Authentication providers are checked sequentially.
-* Additional authentication checks may slightly increase login time.
+* Authentication providers are evaluated sequentially.
+* Multiple authentication checks may introduce a small increase in login response time.
 * Existing Superset authentication configurations remain compatible.
-* OAuth integration can be extended further with a dedicated provider selection UI.
-* LDAP authentication requires an external LDAP server for end-to-end validation.
-* OAuth authentication requires provider credentials (Google, Azure, etc.) for full testing.
-* The implementation supports these authentication methods through configuration, but external provider setup was not available in the local development environment.
+* OAuth provider selection can be enhanced further through a dedicated login interface.
+* LDAP authentication requires access to an external LDAP server for complete validation.
+* OAuth authentication requires valid provider credentials (Google, Azure AD, GitHub, etc.) for end-to-end testing.
+* The implementation supports OAuth through Superset's native OAuth framework, but external OAuth providers were not configured in the local development environment.
+* The solution prioritizes minimal changes to the existing Superset architecture to simplify maintenance and future upgrades.
 
+---
 
+## Testing
+
+### Test Case 1 – Database Authentication
+
+* Authentication Type: AUTH_DB
+* Expected Result: Successful login with valid database credentials.
+* Result: Passed
+
+### Test Case 2 – LDAP Authentication
+
+* Authentication Type: AUTH_LDAP
+* Expected Result: Successful login when valid LDAP credentials are provided.
+* Result: Logic Implemented
+
+### Test Case 3 – Invalid Credentials
+
+* Authentication Type: AUTH_DB / AUTH_LDAP
+* Expected Result: Authentication failure and login rejection.
+* Result: Passed
+
+### Test Case 4 – OAuth Authentication
+
+* Authentication Type: AUTH_OAUTH
+* Expected Result: Authentication through configured OAuth provider.
+* Result: Configuration Support Implemented (Provider credentials not available for local validation)
+
+---
 
 ## Summary
 
-This solution extends Apache Superset authentication by introducing support for multiple authentication providers while maintaining compatibility with the existing authentication framework.
+This implementation extends Apache Superset v5.0.0 to support multiple authentication methods simultaneously while preserving compatibility with the existing authentication framework.
 
-The implementation uses a custom security manager, a custom login view, and a new `AUTH_TYPES` configuration to support multiple authentication methods within the same deployment.
+The solution introduces a custom security manager, a custom login view, and a new `AUTH_TYPES` configuration to support database authentication, LDAP authentication, and OAuth authentication within the same deployment.
+
+The implementation maintains Superset's native OAuth functionality through `AuthOAuthView` while providing flexible multi-authentication support with minimal impact on the existing codebase.

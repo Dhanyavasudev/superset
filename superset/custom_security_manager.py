@@ -1,3 +1,4 @@
+
 from flask import flash, g, redirect, request
 from flask_login import login_user
 
@@ -6,10 +7,10 @@ from flask_appbuilder.security.forms import LoginForm_db
 from flask_appbuilder.security.manager import (
     AUTH_DB,
     AUTH_LDAP,
-    AUTH_OAUTH,
 )
 from flask_appbuilder.security.views import (
     AuthDBView,
+    AuthOAuthView,
     expose,
     no_cache,
     get_safe_redirect,
@@ -42,7 +43,7 @@ class MultiAuthView(AuthDBView):
 
             user = None
 
-            # Try DB Authentication
+            # Try Database Authentication
             if AUTH_DB in self.appbuilder.sm.auth_types:
                 user = self.appbuilder.sm.auth_user_db(
                     form.username.data,
@@ -88,11 +89,12 @@ class MultiAuthView(AuthDBView):
 
 class MultiAuthSecurityManager(SupersetSecurityManager):
     """
-    Custom Security Manager supporting multiple
-    authentication providers simultaneously.
+    Custom Security Manager supporting
+    DB + LDAP + OAuth authentication.
     """
 
     authdbview = MultiAuthView
+    authoauthview = AuthOAuthView
 
     @property
     def auth_types(self):
